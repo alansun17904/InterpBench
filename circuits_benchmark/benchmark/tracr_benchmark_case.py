@@ -105,6 +105,9 @@ class TracrBenchmarkCase(BenchmarkCase):
         ll_cfg = self.get_ll_model_cfg(same_size=same_size,
                                        overwrite_cfg_dict=overwrite_cfg_dict,
                                        *args, **kwargs)
+
+        print(ll_cfg)
+
         hooked_transformer = HookedTransformer(ll_cfg)
         hooked_transformer.to(device)
 
