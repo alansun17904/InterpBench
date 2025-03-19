@@ -1,3 +1,6 @@
+import random
+
+
 compression_ratio_map = {
     "5": 1.8,
     "18": 1.6,
@@ -33,6 +36,7 @@ cases_with_resid_compression = [
     "28",
 ]
 
+d_model_choices = [32, 64, 128, 256, 384, 512, 768, 1024, 2048]
 
 def make_ll_cfg_for_case(
     hl_model,
@@ -52,24 +56,25 @@ def make_ll_cfg_for_case(
         same_size=same_size,
     )
 
-
 def make_ll_cfg(
     hl_model, compress_resid: bool, compression_ratio: float, same_size: bool
 ) -> dict:
+    global d_model_choices
+
     ll_cfg = hl_model.cfg.to_dict().copy()
     if same_size:
         n_heads = ll_cfg["n_heads"]
     else:
-        n_heads = max(4, ll_cfg["n_heads"])
+        n_heads = random.randint(4, max(ll_cfg["n_heads"], 8))
     if compress_resid:
         d_model = int(hl_model.cfg.d_model // compression_ratio)
-        d_model = max(2, d_model)
+        d_model = random.choice([v for v in d_model_choices if v >= d_model])
         d_head = max(1, d_model // n_heads)
-        d_mlp = d_model * 4
+        d_mlp = d_model * random.randint(2, 6)
     else:
         d_head = int(max(1, ll_cfg["d_head"] // compression_ratio))
         d_model = n_heads * d_head
-        d_mlp = d_model * 4
+        d_mlp = d_model * random.randint(2, 6)
     assert d_model > 0
     assert d_head > 0
     assert d_mlp > 0
