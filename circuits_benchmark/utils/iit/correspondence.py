@@ -49,6 +49,7 @@ class TracrCorrespondence(Correspondence):
         tracr_base_corr: Dict[BasisDirection, Set[TracrHLNodeMappingInfo]],
         tracr_corr_override: Optional[Dict[Tuple[str, Optional[str]], TracrHLNodeMappingInfo]] = None,
         hook_name_style: str = "tl",
+        case: BenchmarkCase = None
     ):
         """This method builds a Tracr correspondence combining the basic information that Tracr provides (i.e. which
         basis directions are output by which components) and an optional mapping overriding the default Tracr info
@@ -78,6 +79,9 @@ class TracrCorrespondence(Correspondence):
                 return index.Ix[:, :, unit, :]
             assert unit is None
             return index.Ix[[None]]
+
+        if case is not None:
+            print("Building Tracr correspondence through random assignment.")
 
         corr_dict: dict[HLNode, set[LLNode]] = {}
         for basis_dir, hl_locs in tracr_base_corr.items():
@@ -159,6 +163,8 @@ class TracrCorrespondence(Correspondence):
     ) -> Dict[BasisDirection, Set[TracrHLNodeMappingInfo]]:
         """Builds the basic Tracr correspondence information from the Tracr output."""
         craft_model: SeriesWithResiduals = tracr_output.craft_model
+        print("Transforming Craft model into low-level correspondence.")
+        print(cls.print_craft_model(craft_model))
         result: Dict[BasisDirection, Set[TracrHLNodeMappingInfo]] = {}
 
         i = 0
@@ -171,7 +177,9 @@ class TracrCorrespondence(Correspondence):
 
                     result[direction].add((i, "mlp", None))
 
-                i += 1
+                i += 1 
+                # every time we see an mlp, that denotes that we need to increment the layer;
+                # all mlps map to the mlps in a one-to-one deterministic map
             elif isinstance(block, MultiAttentionHead):
                 for j, sb in enumerate(block.sub_blocks):
                     for direction in sb.w_ov.output_space.basis:
@@ -179,6 +187,8 @@ class TracrCorrespondence(Correspondence):
                             result[direction] = set()
 
                         result[direction].add((i, "attn", j))
+                        # assigning this direction to attention head i.j 
+                        # ith layer and jth-indexed attention head
 
             else:
                 raise ValueError(f"Unknown block type {type(block)}")
