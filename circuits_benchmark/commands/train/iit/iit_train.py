@@ -106,6 +106,16 @@ def setup_args_parser(subparsers):
         "--include-mlp", action="store_true", help="Include MLP in IOI circuit"
     )
 
+    # correspondence variation
+    parser.add_argument(
+        "--rand-correspondence", action="store_true", help="Varies hl-ll correspondence when creating ll model"
+    )
+
+    # architecture variation
+    parser.add_argument(
+        "--rand-architecture", action="store_true", help="Varies architecture when creating ll model"
+    )
+
 
 def config_is_bad(config):
     iit_weight = config.iit_weight
@@ -206,6 +216,8 @@ def run_iit_train(case: BenchmarkCase, args: Namespace):
             "scheduler_val_metric": args.scheduler_val_metric,
             "siit_sampling": args.siit_sampling,
             "val_iia_sampling": args.val_iia_sampling,
+            "rand_correspondence": args.rand_correspondence,
+            "rand_architecture": args.rand_architecture
         }
 
         args = argparse.Namespace(**config)
@@ -236,12 +248,16 @@ def run_iit_train(case: BenchmarkCase, args: Namespace):
         # Save the config
         ll_model_cfg = model_pair.ll_model.cfg
         ll_model_cfg_dict = ll_model_cfg.to_dict()
+
         pickle.dump(ll_model_cfg_dict, open(f"{save_dir}/ll_model_cfg_{weight_int}.pkl", "wb"))
 
         # Dump ground truth edges
         gt_circuit = case.get_ll_gt_circuit()
         edges_list = circuit_to_edges_list(gt_circuit)
         pickle.dump(edges_list, open(f"{save_dir}/edges.pkl", "wb"))
+
+        # Save the correspondence between hl and ll
+        pickle.dump(model_pair.corr, open(f"{save_dir}/hl_ll_corr.pkl", "wb"))
 
         if args.use_wandb:
             if args.save_model_to_wandb:
@@ -289,13 +305,15 @@ def train_model(
             "factor": 0.5,
         }
 
-    ll_model = case.get_ll_model(same_size=args.same_size)
+    # GET LOW-LEVEL MODEL
+    ll_model = case.get_ll_model(same_size=args.same_size, rand=args.rand_architecture)
 
     hl_model = case.get_hl_model()
     if isinstance(hl_model, HookedTracrTransformer):
         hl_model = IITHLModel(hl_model, eval_mode=False)
         hl_model.to(args.device)
 
+    # GET CORRESPONDENCE
     hl_ll_corr = case.get_correspondence(include_mlp=args.include_mlp, same_size=args.same_size)
 
     model_pair = case.build_model_pair(

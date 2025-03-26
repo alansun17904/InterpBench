@@ -62,8 +62,10 @@ def build_tracr_circuits(tracr_graph: DiGraph,
 
             for block_idx, block in enumerate(block.sub_blocks):
                 if isinstance(block, AttentionHead):
-                    process_attention_head_block(block, block_idx, layer, tracr_transformer_circuit, granularity,
-                                                 alignment)
+                    process_attention_head_block(
+                        block, block_idx, layer, 
+                        tracr_transformer_circuit, granularity, alignment
+                    )  ################### PROCESS ATTENTION HEAD
                 else:
                     raise ValueError(f"MultiAttentionHead sub-block {block_idx} is not an AttentionHead")
 
@@ -73,7 +75,13 @@ def build_tracr_circuits(tracr_graph: DiGraph,
                 layer += 1
             last_component_type = "mlp"
 
-            process_mlp_block(block, layer, tracr_transformer_circuit, granularity, alignment)
+            process_mlp_block(
+                block,
+                layer,
+                tracr_transformer_circuit,
+                granularity,
+                alignment
+            ) ########### PROCESS MLP BLOCK
 
     if granularity == "acdc_hooks" or granularity == "sp_hooks":
         resid_post_node = CircuitNode(f"blocks.{layer}.hook_resid_post")

@@ -38,11 +38,17 @@ cases_with_resid_compression = [
 
 d_model_choices = [32, 64, 128, 256, 384, 512, 768, 1024, 2048]
 
+MAX_HEADS = 8
+D_MODEL_RAND_RANGE = 64
+D_HEAD_RAND_RANGE = 8
+
+
 def make_ll_cfg_for_case(
     hl_model,
     case_index: str,
     compression_ratio: float | None = None,
     same_size: bool = False,
+    rand:bool=False
 ) -> dict:
     compress_resid = case_index in cases_with_resid_compression
     if compression_ratio is None:
@@ -54,18 +60,24 @@ def make_ll_cfg_for_case(
         compress_resid=compress_resid or same_size,
         compression_ratio=compression_ratio,
         same_size=same_size,
+        rand=rand,
     )
 
+
+# NONE OF THE SIMPLE CASES THAT WE ARE BENCHMARKING HAVE CUSTOM COMPRESSION RATIOS
+# THEREFORE, COMPRESS_RESID IS ALWAYS FALSE
+
 def make_ll_cfg(
-    hl_model, compress_resid: bool, compression_ratio: float, same_size: bool
+    hl_model, compress_resid: bool, compression_ratio: float, same_size: bool, rand:bool
 ) -> dict:
     global d_model_choices
 
     ll_cfg = hl_model.cfg.to_dict().copy()
+    
     if same_size:
         n_heads = ll_cfg["n_heads"]
     else:
-        n_heads = random.randint(4, max(ll_cfg["n_heads"], 8))
+        n_heads = max(4, ll_cfg["n_heads"])
     if compress_resid:
         d_model = int(hl_model.cfg.d_model // compression_ratio)
         d_model = random.choice([v for v in d_model_choices if v >= d_model])
@@ -74,17 +86,25 @@ def make_ll_cfg(
     else:
         d_head = int(max(1, ll_cfg["d_head"] // compression_ratio))
         d_model = n_heads * d_head
-        d_mlp = d_model * random.randint(2, 6)
+        d_mlp = d_model * 4
+
+    if rand:
+        n_heads = random.randint(n_heads, max(n_heads, MAX_HEADS))
+        d_head = random.randint(d_head, d_head + D_HEAD_RAND_RANGE)
+        d_model = n_heads * d_head
+        d_mlp = d_model * 4
+
     assert d_model > 0
     assert d_head > 0
     assert d_mlp > 0
+
     cfg_dict = {
         "n_layers": max(2, ll_cfg["n_layers"]) if not same_size else ll_cfg["n_layers"],
         "n_heads": n_heads,
         "d_head": d_head,
         "d_model": d_model,
         "d_mlp": d_mlp,
-        "seed": 0,
+        "seed": random.randint(0, 2 ** 16),
         "act_fn": "gelu",
         # "initializer_range": 0.02,
     }

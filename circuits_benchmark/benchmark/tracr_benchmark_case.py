@@ -83,10 +83,11 @@ class TracrBenchmarkCase(BenchmarkCase):
     def get_ll_model_cfg(self,
                          overwrite_cfg_dict: dict | None = None,
                          same_size: bool = False,
+                         rand:bool=False,
                          *args, **kwargs) -> dict:
         """Returns the configuration for the LL model for this benchmark case."""
         hl_model = self.get_hl_model()
-        cfg_dict = make_ll_cfg_for_case(hl_model, self.get_name(), same_size=same_size)
+        cfg_dict = make_ll_cfg_for_case(hl_model, self.get_name(), same_size=same_size, rand=rand)
 
         if overwrite_cfg_dict is not None:
             cfg_dict.update(overwrite_cfg_dict)
@@ -98,12 +99,14 @@ class TracrBenchmarkCase(BenchmarkCase):
         device: t.device = t.device("cuda") if t.cuda.is_available() else t.device("cpu"),
         overwrite_cfg_dict: dict | None = None,
         same_size: bool = False,
+        rand: bool = False,
         *args, **kwargs
     ) -> LLModel:
         """Returns the untrained transformer_lens model for this benchmark case.
         In IIT terminology, this is the LL model before training."""
         ll_cfg = self.get_ll_model_cfg(same_size=same_size,
                                        overwrite_cfg_dict=overwrite_cfg_dict,
+                                       rand=rand,
                                        *args, **kwargs)
 
         self.ll_cfg = ll_cfg
@@ -123,7 +126,7 @@ class TracrBenchmarkCase(BenchmarkCase):
         tracr_output = self.get_tracr_output()
         return HookedTracrTransformer.from_tracr_model(tracr_output.model, device=device, *args, **kwargs)
 
-    def get_correspondence(self, same_size: bool = False, *args, **kwargs) -> Correspondence:
+    def get_correspondence(self, same_size: bool = False, rand:bool=False, *args, **kwargs) -> Correspondence:
         """Returns the correspondence between the reference and the benchmark model."""
         tracr_output = self.get_tracr_output()
         if same_size:
