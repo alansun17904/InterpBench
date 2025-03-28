@@ -58,6 +58,7 @@ class TracrBenchmarkCase(BenchmarkCase):
         ll_model: HookedTransformer | None = None,
         hl_model: HookedRootModule | None = None,
         hl_ll_corr: Correspondence | None = None,
+        rand_correspondence: bool=False,
         *args, **kwargs
     ) -> BaseModelPair:
         """Returns a model pair for training the LL model."""
@@ -71,7 +72,7 @@ class TracrBenchmarkCase(BenchmarkCase):
             hl_model = self.get_hl_model()
 
         if hl_ll_corr is None:
-            hl_ll_corr = self.get_correspondence()
+            hl_ll_corr = self.get_correspondence(rand=rand_correspondence)
 
         return TracrModelPair(
             ll_model=ll_model,
@@ -126,13 +127,13 @@ class TracrBenchmarkCase(BenchmarkCase):
         tracr_output = self.get_tracr_output()
         return HookedTracrTransformer.from_tracr_model(tracr_output.model, device=device, *args, **kwargs)
 
-    def get_correspondence(self, same_size: bool = False, rand:bool=False, *args, **kwargs) -> Correspondence:
+    def get_correspondence(self, same_size: bool = False, rand:bool=False, ll_model=None, *args, **kwargs) -> Correspondence:
         """Returns the correspondence between the reference and the benchmark model."""
         tracr_output = self.get_tracr_output()
         if same_size:
             return TracrCorrespondence.make_identity_corr(tracr_output=tracr_output)
         else:
-            return TracrCorrespondence.from_output(self, tracr_output)
+            return TracrCorrespondence.from_output(self, tracr_output, rand=rand, ll_model=ll_model)
 
     def is_categorical(self) -> bool:
         """Returns whether the benchmark case is categorical."""

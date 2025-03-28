@@ -1,4 +1,5 @@
 import pickle
+import random
 from typing import Dict, Set, Tuple, Optional, Literal
 
 from iit.utils import index
@@ -80,9 +81,6 @@ class TracrCorrespondence(Correspondence):
             assert unit is None
             return index.Ix[[None]]
 
-        if case is not None:
-            print("Building Tracr correspondence through random assignment.")
-
         corr_dict: dict[HLNode, set[LLNode]] = {}
         for basis_dir, hl_locs in tracr_base_corr.items():
             assert tracr_corr_override is None or len(hl_locs) == 1, \
@@ -121,10 +119,12 @@ class TracrCorrespondence(Correspondence):
                                               None)
 
     @classmethod
-    def from_output(cls, case: BenchmarkCase, tracr_output: TracrOutput):
+    def from_output(cls, case: BenchmarkCase, tracr_output: TracrOutput, rand:bool=False, ll_model=None):
         """Creates a Tracr correspondence from a Tracr output, using the given case to determine any overrides to the
         default Tracr correspondence info."""
-        return cls._build_corr_combining_info(cls.build_tracr_base_corr(tracr_output),
+        if rand and ll_model is None:
+            raise ValueError("Generating random correspondence requires providing ll-model.")
+        return cls._build_corr_combining_info(cls.build_tracr_base_corr(tracr_output, rand=rand, ll_model=ll_model),
                                               cls.get_tracr_corr_override_info(case))
 
     @classmethod
@@ -159,7 +159,9 @@ class TracrCorrespondence(Correspondence):
     @classmethod
     def build_tracr_base_corr(
         cls,
-        tracr_output: TracrOutput
+        tracr_output: TracrOutput,
+        rand:bool=False,
+        ll_model=None,
     ) -> Dict[BasisDirection, Set[TracrHLNodeMappingInfo]]:
         """Builds the basic Tracr correspondence information from the Tracr output."""
         craft_model: SeriesWithResiduals = tracr_output.craft_model
@@ -186,13 +188,20 @@ class TracrCorrespondence(Correspondence):
                         if direction not in result:
                             result[direction] = set()
 
-                        result[direction].add((i, "attn", j))
+                        # if RAND, then randomly assign basis direction to attention head
+                        if rand:
+                            n_heads = ll_model.model.cfg.n_heads
+                            # disperse the basis direction across different attention heads
+                            dispersion = max(1, n_heads // 3)
+                            for k in range(dispersion):
+                                result[direction].add((i, "attn", random.randint(0, n_heads - 1)))
                         # assigning this direction to attention head i.j 
                         # ith layer and jth-indexed attention head
 
             else:
                 raise ValueError(f"Unknown block type {type(block)}")
 
+        print(result)
         return result
 
     @classmethod

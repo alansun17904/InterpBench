@@ -227,7 +227,7 @@ def run_iit_train(case: BenchmarkCase, args: Namespace):
 
         # save the model
         output_dir = args.output_dir
-        save_dir = f"{output_dir}/ll_models/{case.get_name()}"
+        save_dir = f"{output_dir}/"
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         weight_int = int(
@@ -308,13 +308,21 @@ def train_model(
     # GET LOW-LEVEL MODEL
     ll_model = case.get_ll_model(same_size=args.same_size, rand=args.rand_architecture)
 
+    print("ll-model cfg:")
+    print(ll_model.model.cfg)
+
     hl_model = case.get_hl_model()
     if isinstance(hl_model, HookedTracrTransformer):
         hl_model = IITHLModel(hl_model, eval_mode=False)
         hl_model.to(args.device)
 
     # GET CORRESPONDENCE
-    hl_ll_corr = case.get_correspondence(include_mlp=args.include_mlp, same_size=args.same_size)
+    hl_ll_corr = case.get_correspondence(
+        include_mlp=args.include_mlp,
+        same_size=args.same_size,
+        rand=args.rand_correspondence,
+        ll_model=ll_model,
+    )
 
     model_pair = case.build_model_pair(
         training_args=training_args,
