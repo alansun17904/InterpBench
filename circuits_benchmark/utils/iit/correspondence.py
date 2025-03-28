@@ -86,21 +86,28 @@ class TracrCorrespondence(Correspondence):
             assert tracr_corr_override is None or len(hl_locs) == 1, \
                 "Tracr cases that have multiple HL nodes for the same basis direction are not supported when using overrides."
 
-            for hl_loc in hl_locs:
-                hl_node = TracrHLNode(
-                    hook_name(hl_loc, hook_name_style),
-                    label=basis_dir.name,
-                    num_classes=0,  # TODO: get num_classes
-                    idx=idx(hl_loc),
-                )
+            ll_nodes = set()
+            hl_node = None
 
-                ll_nodes = set()
+            for loc in hl_locs:
+
+                hl_loc = (loc[0], loc[1], loc[3])
+                ll_loc = (loc[0], loc[1], loc[2])
+
+                if hl_node is None:
+                    hl_node = TracrHLNode(
+                        hook_name(hl_loc, hook_name_style),
+                        label=basis_dir.name,
+                        num_classes=0,  # TODO: get num_classes
+                        idx=idx(hl_loc),
+                    )
+
                 if tracr_corr_override is None:
                     # No override, just add the default mapping
                     ll_nodes.add(
                         LLNode(
-                            hook_name(hl_loc, hook_name_style),
-                            idx(hl_loc),
+                            hook_name(ll_loc, hook_name_style),
+                            idx(ll_loc),
                             None,
                         )
                     )
@@ -108,7 +115,7 @@ class TracrCorrespondence(Correspondence):
                     for ll_loc in tracr_corr_override[basis_dir.name, basis_dir.value]:
                         ll_nodes.add(LLNode(hook_name(ll_loc, "tl"), idx(ll_loc)))
 
-                corr_dict[hl_node] = ll_nodes
+            corr_dict[hl_node] = ll_nodes
 
         return cls(corr_dict)
 
@@ -177,7 +184,7 @@ class TracrCorrespondence(Correspondence):
                     if direction not in result:
                         result[direction] = set()
 
-                    result[direction].add((i, "mlp", None))
+                    result[direction].add((i, "mlp", None, None))
 
                 i += 1 
                 # every time we see an mlp, that denotes that we need to increment the layer;
@@ -193,15 +200,16 @@ class TracrCorrespondence(Correspondence):
                             n_heads = ll_model.model.cfg.n_heads
                             # disperse the basis direction across different attention heads
                             dispersion = max(1, n_heads // 3)
-                            for k in range(dispersion):
-                                result[direction].add((i, "attn", random.randint(0, n_heads - 1)))
+                            for _ in range(dispersion):
+                                result[direction].add((i, "attn", random.randint(0, n_heads - 1), j))
+                        else:
+                            result[direction].add((i, "attn", j, j))
                         # assigning this direction to attention head i.j 
                         # ith layer and jth-indexed attention head
 
             else:
                 raise ValueError(f"Unknown block type {type(block)}")
 
-        print(result)
         return result
 
     @classmethod

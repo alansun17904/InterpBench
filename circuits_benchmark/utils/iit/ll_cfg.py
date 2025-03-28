@@ -80,9 +80,8 @@ def make_ll_cfg(
         n_heads = max(4, ll_cfg["n_heads"])
     if compress_resid:
         d_model = int(hl_model.cfg.d_model // compression_ratio)
-        d_model = random.choice([v for v in d_model_choices if v >= d_model])
         d_head = max(1, d_model // n_heads)
-        d_mlp = d_model * random.randint(2, 6)
+        d_mlp = d_model * 4
     else:
         d_head = int(max(1, ll_cfg["d_head"] // compression_ratio))
         d_model = n_heads * d_head

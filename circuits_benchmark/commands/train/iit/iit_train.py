@@ -308,9 +308,6 @@ def train_model(
     # GET LOW-LEVEL MODEL
     ll_model = case.get_ll_model(same_size=args.same_size, rand=args.rand_architecture)
 
-    print("ll-model cfg:")
-    print(ll_model.model.cfg)
-
     hl_model = case.get_hl_model()
     if isinstance(hl_model, HookedTracrTransformer):
         hl_model = IITHLModel(hl_model, eval_mode=False)
