@@ -279,6 +279,8 @@ def train_model(
         "linear": t.optim.lr_scheduler.LambdaLR
     }
 
+    device = torch.device(args.device)
+
     training_args = {
         # generic training args
         "lr": args.lr,
@@ -306,12 +308,12 @@ def train_model(
         }
 
     # GET LOW-LEVEL MODEL
-    ll_model = case.get_ll_model(same_size=args.same_size, rand=args.rand_architecture)
+    ll_model = case.get_ll_model(same_size=args.same_size, rand=args.rand_architecture, device=device)
 
-    hl_model = case.get_hl_model()
+    hl_model = case.get_hl_model(device=device)
     if isinstance(hl_model, HookedTracrTransformer):
         hl_model = IITHLModel(hl_model, eval_mode=False)
-        hl_model.to(args.device)
+        hl_model.to(device)
 
     # GET CORRESPONDENCE
     hl_ll_corr = case.get_correspondence(
