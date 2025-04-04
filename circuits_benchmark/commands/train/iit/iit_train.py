@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import pickle
+import torch
 import random
 from argparse import Namespace
 
@@ -335,8 +336,8 @@ def train_model(
     train_dataset, test_dataset = train_test_split(
         dataset, test_size=0.2, random_state=42
     )
-    train_dataset = IITDataset(train_dataset, train_dataset, seed=args.seed)
-    test_dataset = IITDataset(test_dataset, test_dataset, seed=args.seed)
+    train_dataset = IITDataset(train_dataset, train_dataset, seed=args.seed, device=device)
+    test_dataset = IITDataset(test_dataset, test_dataset, seed=args.seed, device=device)
 
     # train model
     print("Starting IIT training")

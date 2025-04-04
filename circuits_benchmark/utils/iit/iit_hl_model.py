@@ -41,17 +41,17 @@ class IITHLModel:
 
     def forward(self, input):
         x = self.get_correct_input(input)
-        out = self.hl_model(x)
+        out = self.hl_model(x.to(self.hl_model.device))
         return self.create_hl_output(out)
 
     def run_with_hooks(self, input, *args, **kwargs):
         x = self.get_correct_input(input)
-        out = self.hl_model.run_with_hooks(x, *args, **kwargs)
+        out = self.hl_model.run_with_hooks(x.to(self.hl_model.device), *args, **kwargs)
         return self.create_hl_output(out)
 
     def run_with_cache(self, input):
         x = input[0]
-        out, cache = self.hl_model.run_with_cache(x)
+        out, cache = self.hl_model.run_with_cache(x.to(self.hl_model.device))
         return self.create_hl_output(out), cache
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
